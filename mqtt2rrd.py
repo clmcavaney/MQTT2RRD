@@ -18,7 +18,8 @@
 #
 import sys, os, argparse, atexit, time, logging, ConfigParser, grp, pwd, getpass, json
 from signal import SIGTERM
-import mosquitto, rrdtool
+
+import paho.mqtt.client as paho, rrdtool
 
 logger=logging.getLogger("MQTT2RRD")
 
@@ -91,7 +92,7 @@ def run(args):
     while(True):
         try:
             logger.debug("Entering Loop")
-            client = mosquitto.Mosquitto(get_config_item("mqtt", "client_id", "MQTT2RRD Client"))
+            client = paho.Client(get_config_item("mqtt", "client_id", "MQTT2RRD Client"))
             client.on_message = on_message
             client.on_connect = on_connect
 
@@ -122,9 +123,13 @@ def on_connect(client, userdata, rc):
     logger.info("Connected to server.")
     subs = get_config_item("mqtt", "subscriptions", "#")
     for i in subs.split(","):
-        logger.info("Subscribing to topic: %s" % i)
-        client.subscribe(i)
-
+        try:
+            logger.info("Subscribing to topic: %s" % i)
+            client.subscribe(i)
+            logger.info("Subscribed to topic: %s" % i)
+        except Exception as e:
+            logging.critical("FAIL: %s" % str(e))
+    logger.info("end of connect")
 
 def on_message(mosq, obj, msg):
     logger.debug("Message received on topic: %s with payload: %s." % (msg.topic, msg.payload))
@@ -153,23 +158,23 @@ def on_message(mosq, obj, msg):
     if len(graph_name) > 19:
         graph_name = graph_name[:19]
 
-    ds = "DS:%s:GAUGE:120:U:U" % graph_name
-    ds = str(ds)
 
     if not os.path.exists(file_path):
-        # Create the info file
-        info={
-            'topic':msg.topic,
-            'created':time.time(),
-            'friendly_name': get_config_item(msg.topic, "friendly_name", msg.topic)
-        }
-        info_fpath = os.path.join(dir_name, info_file_name)
-        f=open(info_fpath, "w")
-        json.dump(info, f)
-        f.close()
-        # Create the RRD file
         try:
             step=get_config_item(msg.topic, "step", 60)
+            ds = "DS:%s:GAUGE:%d:U:U" % (graph_name,2*int(step))
+            ds = str(ds)
+            # Create the info file
+            info={
+                'topic':msg.topic,
+                'created':time.time(),
+                'friendly_name': get_config_item(msg.topic, "friendly_name", msg.topic)
+            }
+            info_fpath = os.path.join(dir_name, info_file_name)
+            f=open(info_fpath, "w")
+            json.dump(info, f)
+            f.close()
+            # Create the RRD file
             RRAstr = get_config_item(
                 msg.topic,
                 "archives",
