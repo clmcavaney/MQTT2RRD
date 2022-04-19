@@ -19,6 +19,7 @@
 # along with MQTT2RRD.  If not, see "http://www.gnu.org/licenses/".
 #
 # Modified by Christopher McAvaney (christopher.mcavaney@gmail.com) 2020
+# https://github.com/clmcavaney/MQTT2RRD.git
 #
 import sys, os, argparse, atexit, time, logging, configparser, grp, pwd, getpass, json
 from signal import SIGTERM
