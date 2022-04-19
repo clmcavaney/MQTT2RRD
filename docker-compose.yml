@@ -1,0 +1,28 @@
+version: "3.0"
+
+services:
+  mqtt2rrd-test:
+    container_name: mqtt2rrd-test
+    # this will be name image repository name when building
+    image: clmcavaney/mqtt2rrd
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    volumes:
+      - '/etc/localtime:/etc/localtime'
+      - './mqtt2rrd-conf:/mqtt2rrd-conf'
+      - type: volume
+        source: mqtt2rrd-data
+        target: /mnt/mqtt2rrd-rrd-data
+        volume:
+          nocopy: true
+
+volumes:
+  mqtt2rrd-data:
+    driver: "local"
+    driver_opts:
+      type: "nfs"
+      o: "addr=nas-01.l.figntigger.id.au,nolock,soft,rw,vers=3"
+      device: ":/volume1/docker-data/mqtt2rrd-data"
+
