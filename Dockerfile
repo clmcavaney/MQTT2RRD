@@ -1,4 +1,7 @@
+# Ubuntu
 FROM python:3.10.4
+# Alpine
+#FROM python:3.10.4-alpine
 
 ENV PYTHONUNBUFFERED=1
 
@@ -6,8 +9,18 @@ LABEL au.id.figntigger.image.authors="christopher@figntigger.id.au" \
 	maintainer="Christopher McAvaney <christopher@figntigger.id.au>" \
 	description="A MQTT to RRD gateway"
 
+# Ubuntu
 RUN apt-get update && \
 	apt-get install -y librrd-dev
+# Alpine
+#RUN apk update \
+#	&& apk add \
+#		librrd \
+#		rrdtool-dev \
+#		python3-dev \
+#		musl-dev \
+#		linux-headers \
+#		make
 
 COPY requirements.txt ./
 # to be mapped to a volume on running a container
