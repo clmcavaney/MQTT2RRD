@@ -4,7 +4,7 @@ services:
   mqtt2rrd-test:
     container_name: mqtt2rrd-test
     # this will be name image repository name when building
-    image: clmcavaney/mqtt2rrd
+    image: git.figntigger.id.au/chrismc/mqtt2rrd
     build:
       context: .
       dockerfile: Dockerfile
