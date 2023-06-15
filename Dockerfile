@@ -30,4 +30,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY mqtt2rrd.py ./
 
 CMD [ "python", "./mqtt2rrd.py", "--config_file", "./mqtt2rrd-conf/mqtt2rrd.conf", "start", "--no_daemon"]
-
+HEALTHCHECK --start-period=10s --interval=10s CMD pgrep -x python > /dev/null || exit 1
