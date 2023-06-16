@@ -1,6 +1,6 @@
 NAME	:= git.figntigger.id.au/chrismc/mqtt2rrd
 #TAG		:= $$(git log -1 --pretty=%H)
-TAG		:= $$(cd MQTT2RRD ; git describe --abbrev=0)
+TAG		:= $$(git describe --abbrev=0)
 IMG		:= ${NAME}:${TAG}
 LATEST	:= ${NAME}:latest
 
@@ -16,7 +16,8 @@ help:
 build: ## Build the Docker image
 build:
 	@echo "building"
-	@docker build -t ${IMG} .
+	# need to adjust the build context
+	@docker build -t ${IMG} --file ../docker/Dockerfile ..
 	@echo "tagging"
 	@docker tag ${IMG} ${LATEST}
 
