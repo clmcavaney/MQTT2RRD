@@ -26,7 +26,7 @@ ADD --chown=worker:worker mqtt2rrd-conf-example ./mqtt2rrd-conf
 RUN pip install --user --no-cache-dir -r requirements.txt
 
 # local version to this build
-COPY --chown=worker:worker ../src/mqtt2rrd.py ./
+COPY --chown=worker:worker src/mqtt2rrd.py ./
 
 CMD [ "python", "./mqtt2rrd.py", "--config_file", "./mqtt2rrd-conf/mqtt2rrd.conf", "start", "--no_daemon"]
 HEALTHCHECK --start-period=10s --interval=10s CMD pgrep -x python > /dev/null || exit 1
