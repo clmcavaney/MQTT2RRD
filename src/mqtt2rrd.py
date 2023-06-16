@@ -22,6 +22,7 @@
 # https://github.com/clmcavaney/MQTT2RRD.git
 #
 import sys, os, argparse, atexit, time, logging, configparser, grp, pwd, getpass, json
+import logging.handlers
 from signal import SIGTERM
 
 import paho.mqtt.client as mqtt
@@ -516,12 +517,21 @@ else:
 formatter = logging.Formatter('%(asctime)s: %(levelname)s: %(message)s')
 
 logger.setLevel(get_config_item("logging", "log_level", "DEBUG"))
+# file handler
 lf=get_config_item("logging", "log_file", None)
+"""
 if lf:
     fh = logging.FileHandler(lf)
     fh.setLevel(get_config_item("logging", "log_level", "DEBUG"))
     fh.setFormatter(formatter)
     logger.addHandler(fh)
+"""
+if lf:
+    wfh = logging.handlers.WatchedFileHandler(lf)
+    wfh.setLevel(get_config_item("logging", "log_level", "DEBUG"))
+    wfh.setFormatter(formatter)
+    logger.addHandler(wfh)
+# console handler
 ch = logging.StreamHandler()
 ch.setLevel(get_config_item("logging", "log_level", "DEBUG"))
 ch.setFormatter(formatter)
