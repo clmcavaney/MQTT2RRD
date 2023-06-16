@@ -21,7 +21,7 @@ USER worker
 
 COPY --chown=worker:worker requirements.txt ./
 # to be mapped to a volume on running a container
-ADD --chown=worker:worker mqtt2rrd-conf-example ./mqtt2rrd-conf
+ADD --chown=worker:worker mqtt2rrd-conf ./mqtt2rrd-conf
 
 RUN pip install --user --no-cache-dir -r requirements.txt
 
