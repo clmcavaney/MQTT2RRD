@@ -11,7 +11,7 @@ services:
     restart: always
     volumes:
       - '/etc/localtime:/etc/localtime'
-      - './mqtt2rrd-conf:/mqtt2rrd-conf'
+      - './mqtt2rrd-conf:/home/worker/mqtt2rrd-conf'
       - type: volume
         source: mqtt2rrd-data
         target: /mnt/mqtt2rrd-rrd-data
