@@ -55,3 +55,4 @@ docs/_build/
 # Local config, not required for git repository
 mqtt2rrd.conf
 testing/
+mqtt2rrd.service

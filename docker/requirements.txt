@@ -1,0 +1,3 @@
+configparser
+paho-mqtt
+rrdtool

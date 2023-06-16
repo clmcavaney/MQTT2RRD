@@ -1,0 +1,14 @@
+# Adjust to suit your needs
+[Unit]
+Description=MQTT2RRD service
+After=mosquitto.service
+
+[Service]
+ExecStart=<path to installed location of mqtt2rrd.py> --config_file <path to mqtt2rrd.conf config file> start --no_daemon
+WorkingDirectory=<path to installed location of mqtt2rrd.py or data folder - doesn't really matter>
+Restart=always
+User=<appropriate user to run as>
+
+[Install]
+WantedBy=multi-user.target
+
