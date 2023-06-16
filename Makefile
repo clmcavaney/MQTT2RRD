@@ -1,6 +1,6 @@
 NAME	:= git.figntigger.id.au/chrismc/mqtt2rrd
 #TAG		:= $$(git log -1 --pretty=%H)
-TAG		:= $$(git describe --abbrev=0)
+TAG		:= $$(cd MQTT2RRD ; git describe --abbrev=0)
 IMG		:= ${NAME}:${TAG}
 LATEST	:= ${NAME}:latest
 
