@@ -1,4 +1,4 @@
-NAME	:= git.figntigger.id.au/chrismc/mqtt2rrd
+NAME	:= git.figntigger.io/chrismc/mqtt2rrd
 #TAG		:= $$(git log -1 --pretty=%H)
 TAG		:= $$(git describe --abbrev=0)
 IMG		:= ${NAME}:${TAG}
