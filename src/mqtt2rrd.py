@@ -232,7 +232,9 @@ def run(args):
     while(True):
         try:
             logger.debug("Entering Loop")
-            client = mqtt.Client(get_config_item("mqtt", "client_id", "MQTT2RRD Client"), protocol=eval(get_config_item("mqtt", "protocol", mqtt.MQTTv311)))
+            client = mqtt.Client(callback_api_version = mqtt.CallbackAPIVersion.VERSION2, 
+                                client_id = get_config_item("mqtt", "client_id", "MQTT2RRD Client"), 
+                                protocol = eval(get_config_item("mqtt", "protocol", mqtt.MQTTv311)))
             client.on_message = on_message
             client.on_connect = on_connect
             client.on_log = on_log
@@ -261,17 +263,20 @@ def run(args):
 # MQTT Callback handlers
 #
 ####
-def on_connect(client, userdata, flags, rc):
-    logger.info("Connected to server.")
-    subs = get_config_item("mqtt", "subscriptions", "#")
-    for i in subs.split(","):
-        try:
-            logger.info("Subscribing to topic: %s" % i)
-            resp = client.subscribe(i)
-            logger.info("Subscribed to topic: %s" % i)
-        except Exception as e:
-            logging.critical("FAIL: %s" % str(e))
-    logger.info("end of connect")
+def on_connect(client, userdata, flags, reason_code, properties):
+    if reason_code == 0:
+        logger.info("Connected to server.")
+        subs = get_config_item("mqtt", "subscriptions", "#")
+        for i in subs.split(","):
+            try:
+                logger.info("Subscribing to topic: %s" % i)
+                resp = client.subscribe(i)
+                logger.info("Subscribed to topic: %s" % i)
+            except Exception as e:
+                logging.critical("FAIL: %s" % str(e))
+        logger.info("end of connect")
+    elif reason_code > 0:
+        logger.error("on_connect(): error connecting - not attempting to subscribe to topics")
 
 def on_message(mosq, obj, msg):
     global args
@@ -334,6 +339,7 @@ def on_message(mosq, obj, msg):
 
 def on_log(client, userdata, level, buf):
     print("log: lvl({0}): {1}".format(hex(level), buf))
+    print("log: client ({}), userdata ({})".format(client, userdata))
 
 
 ######
