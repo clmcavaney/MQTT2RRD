@@ -12,17 +12,21 @@ log_level = 20
 [mqtt]
 client_id = "MQTT_to_RRD_TEST"
 hostname = test.mosquitto.org
-port=1883
-#username="bob"
-#password="t0ps3cr3t!"
-keepalive=60
-subscriptions=#
+port = 1883
+#username = "bob"
+#password = "t0ps3cr3t!"
+keepalive = 60
+subscriptions = #
 
 [/other/important/topic]
 friendly_name = "My Important Topic"
-step=30 
-archives=RRA:AVERAGE:0.5:1:120,RRA:AVERAGE:0.5:5:288
+step = 30 
+# hb == heartbeat, optional - defaults to 2 x step
+hb = 7200
+# optional - defaults to "RRA:AVERAGE:0.5:2:30,RRA:AVERAGE:0.5:5:288,RRA:AVERAGE:0.5:30:336,RRA:AVERAGE:0.5:60:1488,RRA:AVERAGE:0.5:720:744,RRA:AVERAGE:0.5:1440:265"
+archives = RRA:AVERAGE:0.5:1:120,RRA:AVERAGE:0.5:5:288
 # default DS is topic with '/' and '.' replaced with '_' up to 19 characters, you may want to manually change that as below
-ds=bathroom
-
+ds = bathroom
+# optional - if the value is a JSON object, these are a comma separated list of keys you want to store
+json_keys = temperature,humidity
 
