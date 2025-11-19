@@ -2,7 +2,6 @@ NAME	:= git.figntigger.io/chrismc/mqtt2rrd
 #TAG		:= $$(git log -1 --pretty=%H)
 TAG		:= $$(git describe --abbrev=0)
 IMG		:= ${NAME}:${TAG}
-IMG_EDGE	:= ${NAME}:edge-${TAG}
 LATEST	:= ${NAME}:latest
 
 define find.functions
@@ -14,17 +13,19 @@ help:
 	@echo ''
 	$(call find.functions)
 
-build_edge: ## Build the Docker image for testing
+build_edge: ## Build the Docker image for testing - no ":latest" tagged
 build_edge:
+	$(eval IMG := ${NAME}:edge)
 	@echo "building edge"
 	# need to adjust the build context
-	@docker build -t ${IMG_EDGE} --file ../docker/Dockerfile ..
+	@docker build -t ${IMG} --file ../docker/Dockerfile ..
 
 push_edge: ## Push the testing Docker image to the package registry
 push_edge: build_edge
-	@echo "pushing \"${IMG_EDGE}\""
+	$(eval IMG := ${NAME}:edge)
+	@echo "pushing \"${IMG}\""
 	# push this recent tag
-	@docker push ${IMG_EDGE}
+	@docker push ${IMG}
 
 build: ## Build the Docker image
 build:
@@ -45,8 +46,8 @@ push: build
 
 clean_edge: ## Clean local Docker image for testing
 clean_edge:
-	@echo "removing Docker image: ${IMG_EDGE}"
-	docker rmi ${IMG_EDGE} || true
+	@echo "removing Docker image: ${IMG}"
+	docker rmi ${IMG} || true
 
 clean: ## Clean local Docker image
 clean:
