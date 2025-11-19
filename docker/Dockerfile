@@ -36,13 +36,13 @@ COPY --chown=worker:worker mqtt2rrd-conf ./mqtt2rrd-conf
 COPY --chown=worker:worker src/mqtt2rrd.py ./
 
 RUN pip install --upgrade pip \
-	&& pip install --no-cache-dir --requirement requirements.txt
+	&& pip install --no-cache-dir --break-system-packages --requirement requirements.txt
 
 RUN apk del --purge build-dependencies
 
 USER worker
 
-CMD [ "python", "./mqtt2rrd.py", "--config_file", "./mqtt2rrd-conf/mqtt2rrd.conf", "start", "--no_daemon"]
+CMD [ "python", "./mqtt2rrd.py", "--config_file", "./mqtt2rrd-conf/mqtt2rrd.conf", "start", "--no_daemon" ]
 HEALTHCHECK --start-period=10s --interval=10s CMD pgrep -x python > /dev/null || exit 1
 
 # vim: ts=4 sw=4
