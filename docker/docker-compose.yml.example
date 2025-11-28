@@ -24,15 +24,20 @@ services:
     # this will be name image repository name when building - adjust accordingly
     image: <FQDN/user/package name> or <user/package name>
     restart: unless-stopped
+    depends_on:
+      mqtt2rrd:
+        condition: service_healthy
     volumes:
       - type: volume
         source: mqtt2rrd-data
         target: /mnt/mqtt2rrd-rrd-data
         volume:
           nocopy: true
-	  # requires S3 bucket config and credentials
+      # requires S3 bucket config and credentials
       - ./aws-config.ini:/home/worker/.aws/config
       - ./aws-credentials.ini:/home/worker/.aws/credentials
+      # expecting two shell scripts to render the graphs - see examples in graphing-rrd-data directory
+      - <local directory>:/home/worker/graphing-rrd-data
     environment:
       - AWS_PROFILE=rrd-graphs
       - S3_BUCKET=rrd-graphs
@@ -46,3 +51,5 @@ volumes:
       o: "addr=<FQDN of NFS server>,nolock,soft,rw,vers=3"
       device: ":/volume1/docker-data/mqtt2rrd-data"
 
+# vim: ts=2 sw=2 expandtab
+# END OF FILE
