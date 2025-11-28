@@ -1,0 +1,4 @@
+# every 30 minutes
+*/30 * * * * /home/worker/graphing-rrd-data/render-all-temp-images.sh
+# every 30 minutes
+*/30 * * * * /home/worker/graphing-rrd-data/render-multiple-ds-on-one-image.sh
