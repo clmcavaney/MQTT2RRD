@@ -54,7 +54,7 @@
               push: true
               tags: |
                 git.figntigger.io/chrismc/${{ steps.lower_repo_name.outputs.repository_name_lower }}:${{ steps.get_tag.outputs.LAST_ANNOTATED_TAG }}
-                git.figntigger.io/chrismc/${{ github.event.repository.name }}:latest
+                git.figntigger.io/chrismc/${{ steps.lower_repo_name.ouptuts.repository_name_lower }}:latest
               platforms: linux/amd64
               ssh: default
               # Optionally, add build arguments or target stages
