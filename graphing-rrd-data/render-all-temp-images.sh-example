@@ -1,0 +1,299 @@
+#!/usr/bin/env bash
+
+#
+# Script to render graphs for all sensors
+#
+# Author: Christopher McAvaney <christopher@hodgemcavaney.id.au>
+# Version: 1.0
+#
+
+DEBUG=0
+
+# source data:
+# NFS volume mounted to /mnt/mqtt2rrd-rrd-data
+# destination location:
+# /mnt/mqtt2rrd-rrd-data/graphs
+
+rrd_base_dir="/mnt/mqtt2rrd-rrd-data"
+IMAGE_OUTPUT_DIR="/mnt/mqtt2rrd-rrd-data/graphs"
+
+# Need a list of RRD files and associated details
+# format is:
+# <RRD filename>|<sensor short name>|<vertical label>|<sensor DS name>|<sensor description>
+# sensor short name - used with graph file names, etc
+# sensor DS name - limited to 19 characters
+sensor_rrds=(
+	# examples
+	"${rrd_base_dir}/homie/denkovi/ffb930b31701/json-temp.rrd|laundry-cpbrd-temp|°C|laundry_cpbrd_temp|Laundry networking cupboard temperature"
+	"${rrd_base_dir}/homie/pi-shed/000006a377c4/json-temp.rrd|shed-temp|°C|shed_temp|Shed temperature"
+	"${rrd_base_dir}/zigbee2mqtt/bathroom-temperature.rrd|bathroom-temp|°C|bathroom_temperatur|Bathroom temperature"
+	"${rrd_base_dir}/zigbee2mqtt/bathroom-humidity.rrd|bathroom-humidity|%|bathroom_humidity|Bathroom humidity"
+)
+
+LINE_COLOUR="#009900"
+
+for sensor_rrd in "${sensor_rrds[@]}"; do
+	rrd_filename=$(echo "${sensor_rrd}" | cut -d'|' -f1)
+	sensor_short_name=$(echo "${sensor_rrd}" | cut -d'|' -f2)
+	vertical_label=$(echo "${sensor_rrd}" | cut -d'|' -f3)
+	sensor_ds_name=$(echo "${sensor_rrd}" | cut -d'|' -f4)
+	sensor_description=$(echo "${sensor_rrd}" | cut -d'|' -f5)
+
+	if [[ ${DEBUG} -eq 1 ]] ; then
+		echo "DEBUG:       rrd_filename \"${rrd_filename}\""
+		echo "DEBUG:  sensor_short_name \"${sensor_short_name}\""
+		echo "DEBUG:     vertical_label \"${vertical_label}\""
+		echo "DEBUG:     sensor_ds_name \"${sensor_ds_name}\""
+		echo "DEBUG: sensor_description \"${sensor_description}\""
+	fi
+
+	last_update=$(rrdtool last "${rrd_filename}")
+	last_update_fmt=$(date --date="@${last_update}" +"%a, %d %b %Y %H\\:%M\\:%S %z")
+	last_update_fmt_mini=$(date --date="@${last_update}" +"%Y-%m-%d %H\\:%M")
+
+	echo "rendering for sensor \"${sensor_description}\""
+
+	if [[ ${DEBUG} -eq 1 ]] ; then
+		echo "DEBUG: image path \"${IMAGE_OUTPUT_DIR}/trend-non-linear-${sensor_short_name}.png\""
+	fi
+
+	rrdtool graph "${IMAGE_OUTPUT_DIR}/trend-non-linear-${sensor_short_name}.png" \
+		--imgformat PNG --width 400 \
+		--end '+1w' --start '-1w' \
+		--watermark 'proof of concept only' \
+		--rigid \
+		--alt-autoscale \
+		--alt-y-grid \
+		--vertical-label "${vertical_label}" \
+		DEF:t1="${rrd_filename}":${sensor_ds_name}:AVERAGE \
+		VDEF:mint1=t1,MINIMUM \
+		VDEF:maxt1=t1,MAXIMUM \
+		VDEF:avg=t1,AVERAGE \
+		CDEF:smooth=t1,1800,TREND \
+		CDEF:predict=86400,-7,900,t1,PREDICT \
+		CDEF:sigma=86400,-7,900,t1,PREDICTSIGMA \
+		LINE1:t1${LINE_COLOUR}:t1 \
+		GPRINT:t1:LAST:"${sensor_description}\: %2.1lf" \
+		GPRINT:mint1:"Min\: %2.1lf" \
+		GPRINT:maxt1:"Max\: %2.1lf\j" \
+		LINE2:avg#00FF00:"Avg\n":dashes=5 \
+		LINE2:predict#FF00FF:"Trend prediction\n":dashes=5 \
+		LINE1:smooth#FF0000:"Sliding Window Smoothing" \
+		COMMENT:"\s" \
+		COMMENT:"Non linear prediction test\r" \
+		COMMENT:"Last data update\\: ${last_update_fmt}\r" \
+	&> /dev/null
+
+	if [[ ${DEBUG} -eq 1 ]] ; then
+		echo "DEBUG: image path \"${IMAGE_OUTPUT_DIR}/trend-linear-${sensor_short_name}.png\""
+	fi
+
+	rrdtool graph "${IMAGE_OUTPUT_DIR}/trend-linear-${sensor_short_name}.png" \
+		--imgformat PNG --width 400 \
+		--end '+1m' --start '-2m' \
+		--watermark 'proof of concept only' \
+		--rigid \
+		--alt-autoscale \
+		--alt-y-grid \
+		--vertical-label "${vertical_label}" \
+		DEF:t1="${rrd_filename}":${sensor_ds_name}:AVERAGE \
+		VDEF:mint1=t1,MINIMUM \
+		VDEF:maxt1=t1,MAXIMUM \
+		VDEF:avg=t1,AVERAGE \
+		VDEF:slope=t1,LSLSLOPE \
+		VDEF:cons=t1,LSLINT \
+		CDEF:lsl2=t1,POP,slope,COUNT,*,cons,+ \
+		CDEF:pred=lsl2,30,35,LIMIT \
+		VDEF:minpred=pred,FIRST \
+		VDEF:maxpred=pred,LAST \
+		AREA:pred#BCD2EE \
+		LINE1:t1${LINE_COLOUR}:t1 \
+		GPRINT:t1:LAST:"${sensor_description}\: %2.1lf" \
+		GPRINT:mint1:"Min\: %2.1lf" \
+		GPRINT:maxt1:"Max\: %2.1lf\j" \
+		LINE2:avg#00FF00:"Avg":dashes=5 \
+		LINE3:lsl2#FF0000:"Least sqr pred.\n":dashes=8 \
+		GPRINT:minpred:"reaching 30 on \: %c\n":strftime \
+		GPRINT:maxpred:"reaching 35 on \: %c\n":strftime \
+		COMMENT:"Linear prediction test\r" \
+		COMMENT:"Last data update\\: ${last_update_fmt}\r" \
+	&> /dev/null
+
+
+	if [[ ${DEBUG} -eq 1 ]] ; then
+		echo "DEBUG: image path \"${IMAGE_OUTPUT_DIR}/${sensor_short_name}.png\""
+	fi
+
+	# Hourly (2 minute average)
+	rrdtool graph "${IMAGE_OUTPUT_DIR}/${sensor_short_name}.png" \
+		--imgformat PNG --width 400 \
+		--end now --start end-1d \
+		--watermark 'proof of concept only' \
+		--rigid \
+		--alt-autoscale \
+		--alt-y-grid \
+		--vertical-label "${vertical_label}" \
+		DEF:t1="${rrd_filename}":${sensor_ds_name}:AVERAGE \
+		VDEF:mint1=t1,MINIMUM \
+		VDEF:maxt1=t1,MAXIMUM \
+		LINE1:t1${LINE_COLOUR}:t1 \
+		GPRINT:t1:LAST:"${sensor_description}\: %2.1lf" \
+		GPRINT:mint1:"Min\: %2.1lf" \
+		GPRINT:maxt1:"Max\: %2.1lf\j" \
+		COMMENT:"Last data update\\: ${last_update_fmt}\r" \
+	&> /dev/null
+
+
+	if [[ ${DEBUG} -eq 1 ]] ; then
+		echo "DEBUG: image path \"${IMAGE_OUTPUT_DIR}/thumb-${sensor_short_name}.png\""
+	fi
+
+	rrdtool graph "${IMAGE_OUTPUT_DIR}/thumb-${sensor_short_name}.png" \
+		--imgformat PNG --width 322 \
+		--end now --start end-1d \
+		--watermark 'proof of concept only' \
+		--rigid \
+		--alt-autoscale \
+		--alt-y-grid \
+		--vertical-label "${vertical_label}" \
+		DEF:t1="${rrd_filename}":${sensor_ds_name}:AVERAGE \
+		LINE1:t1${LINE_COLOUR}:t1 \
+		GPRINT:t1:LAST:"${sensor_description}\: %2.1lf\j" \
+		COMMENT:"Last data update\\: ${last_update_fmt}\r" \
+	&> /dev/null
+
+
+	if [[ ${DEBUG} -eq 1 ]] ; then
+		echo "DEBUG: image path \"${IMAGE_OUTPUT_DIR}/thumb-mini-${sensor_short_name}.png\""
+	fi
+
+	# truncating the label for the sensor to 15 characters via the Substring Extraction of Bash variables
+	rrdtool graph "${IMAGE_OUTPUT_DIR}/thumb-mini-${sensor_short_name}.png" \
+		--imgformat PNG --width 180 \
+		--full-size-mode --height 95 \
+		--font LEGEND:6 \
+		--end now --start end-1d \
+		--watermark 'proof of concept only' \
+		--rigid \
+		--alt-autoscale \
+		--alt-y-grid \
+		--vertical-label "${vertical_label} [POC]" \
+		DEF:t1="${rrd_filename}":${sensor_ds_name}:AVERAGE \
+		LINE1:t1${LINE_COLOUR}:t1 \
+		GPRINT:t1:LAST:"Last\: %2.1lf\j" \
+	&> /dev/null
+#		GPRINT:t1:LAST:"${sensor_description:0:15}\: %2.1lf\j" \
+#		COMMENT:"Last upd\\: ${last_update_fmt_mini}\r" \
+
+
+	if [[ ${DEBUG} -eq 1 ]] ; then
+		echo "DEBUG: image path \"${IMAGE_OUTPUT_DIR}/${sensor_short_name}-days.png\""
+	fi
+
+	# Daily (5 minute average)
+	rrdtool graph "${IMAGE_OUTPUT_DIR}/${sensor_short_name}-days.png" \
+		--imgformat PNG --width 400 \
+		--end now --start end-2d \
+		--watermark 'proof of concept only' \
+		--rigid \
+		--alt-autoscale \
+		--alt-y-grid \
+		--vertical-label "${vertical_label}" \
+		DEF:t1="${rrd_filename}":${sensor_ds_name}:AVERAGE \
+		LINE1:t1${LINE_COLOUR}:t1 \
+		GPRINT:t1:LAST:"${sensor_description}\: %2.1lf\j" \
+		COMMENT:"Last data update\\: ${last_update_fmt}\r" \
+	&> /dev/null
+
+
+	if [[ ${DEBUG} -eq 1 ]] ; then
+		echo "DEBUG: image path \"${IMAGE_OUTPUT_DIR}/${sensor_short_name}-week.png\""
+	fi
+
+	# Weekly (30 minute average)
+	rrdtool graph "${IMAGE_OUTPUT_DIR}/${sensor_short_name}-week.png" \
+		--imgformat PNG --width 400 \
+		--end now --start end-1w \
+		--watermark 'proof of concept only' \
+		--rigid \
+		--alt-autoscale \
+		--alt-y-grid \
+		--vertical-label "${vertical_label}" \
+		DEF:t1="${rrd_filename}":${sensor_ds_name}:AVERAGE \
+		LINE1:t1${LINE_COLOUR}:t1 \
+		GPRINT:t1:LAST:"${sensor_description}\: %2.1lf\j" \
+		COMMENT:"Last data update\\: ${last_update_fmt}\r" \
+	&> /dev/null
+
+
+	if [[ ${DEBUG} -eq 1 ]] ; then
+		echo "DEBUG: image path \"${IMAGE_OUTPUT_DIR}/${sensor_short_name}-month.png\""
+	fi
+
+	# Monthly (1 hour average)
+	rrdtool graph "${IMAGE_OUTPUT_DIR}/${sensor_short_name}-month.png" \
+		--imgformat PNG --width 400 \
+		--end now --start end-1mon \
+		--watermark 'proof of concept only' \
+		--rigid \
+		--alt-autoscale \
+		--alt-y-grid \
+		--vertical-label "${vertical_label}" \
+		DEF:t1="${rrd_filename}":${sensor_ds_name}:AVERAGE \
+		LINE1:t1${LINE_COLOUR}:t1 \
+		GPRINT:t1:LAST:"${sensor_description}\: %2.1lf\j" \
+		COMMENT:"Last data update\\: ${last_update_fmt}\r" \
+	&> /dev/null
+
+
+	if [[ ${DEBUG} -eq 1 ]] ; then
+		echo "DEBUG: image path \"${IMAGE_OUTPUT_DIR}/${sensor_short_name}-half-year.png\""
+	fi
+
+	# Yearly (1/2 day average)
+	rrdtool graph "${IMAGE_OUTPUT_DIR}/${sensor_short_name}-half-year.png" \
+		--imgformat PNG --width 400 \
+		--end now --start end-6mon \
+		--watermark 'proof of concept only' \
+		--rigid \
+		--alt-autoscale \
+		--alt-y-grid \
+		--vertical-label "${vertical_label}" \
+		DEF:t1="${rrd_filename}":${sensor_ds_name}:AVERAGE \
+		LINE1:t1${LINE_COLOUR}:t1 \
+		GPRINT:t1:LAST:"${sensor_description}\: %2.1lf\j" \
+		COMMENT:"Last data update\\: ${last_update_fmt}\r" \
+	&> /dev/null
+
+
+	if [[ ${DEBUG} -eq 1 ]] ; then
+		echo "DEBUG: image path \"${IMAGE_OUTPUT_DIR}/${sensor_short_name}-year.png\""
+	fi
+
+	# Yearly (1 day average)
+	rrdtool graph "${IMAGE_OUTPUT_DIR}/${sensor_short_name}-year.png" \
+		--imgformat PNG --width 400 \
+		--end now --start end-1y \
+		--watermark 'proof of concept only' \
+		--rigid \
+		--alt-autoscale \
+		--alt-y-grid \
+		--vertical-label "${vertical_label}" \
+		DEF:t1="${rrd_filename}":${sensor_ds_name}:AVERAGE \
+		LINE1:t1${LINE_COLOUR}:t1 \
+		GPRINT:t1:LAST:"${sensor_description}\: %2.1lf\j" \
+		COMMENT:"Last data update\\: ${last_update_fmt}\r" \
+	&> /dev/null
+done
+
+
+# At this point we will have a stack of PNG images files in the ${IMAGE_OUTPUT_DIR} location.
+# You can copy them to a web server location, or an S3 bucket or anything.
+
+# Examples
+# echo "copying from \"${IMAGE_OUTPUT_DIR}\" to /var/www/mqtt-graphs/"
+# cp -a ${IMAGE_OUTPUT_DIR}/*.png /var/www/mqtt-graphs/
+# echo "copying from \"${IMAGE_OUTPUT_DIR}\" to S3 bucket \"rrd-graphs\""
+# aws --profile=rrd-graphs s3 cp --quiet ${IMAGE_OUTPUT_DIR} s3://rrd-graphs/ --recursive --exclude "@eaDir/*"
+
+# END OF FILE

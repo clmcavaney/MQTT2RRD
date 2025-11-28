@@ -1,0 +1,299 @@
+#!/usr/bin/env bash
+
+#
+# Script to render subscription group graphs for all sensors
+# Fairly hard coded at this point, config for this could be in a .conf file and then use Python rather than bash to manage
+#
+# Author: Christopher McAvaney <christopher@hodgemcavaney.id.au>
+# Version: 1.0
+#
+
+# source data:
+# NFS volume mounted to /mnt/mqtt2rrd-rrd-data
+# destination location:
+# /mnt/mqtt2rrd-rrd-data/graphs
+
+rrd_base_dir="/mnt/mqtt2rrd-rrd-data"
+IMAGE_OUTPUT_DIR="/mnt/mqtt2rrd-rrd-data/graphs"
+
+# Colour pallete from http://paletton.com/#uid=7001q0kiYFPjaZojJRPgduIcMlu
+LINE_COLOUR_01="#FF6868"
+LINE_COLOUR_02="#FFE568"
+LINE_COLOUR_03="#7960CA"
+LINE_COLOUR_04="#5ADD5A"
+LINE_COLOUR_05="#890DC4"
+# just start reusing existing colours
+LINE_COLOUR_06=${LINE_COLOUR_01}
+LINE_COLOUR_07=${LINE_COLOUR_02}
+LINE_COLOUR_08=${LINE_COLOUR_03}
+LINE_COLOUR_09=${LINE_COLOUR_04}
+LINE_COLOUR_10=${LINE_COLOUR_05}
+
+
+## OUTSIDE
+
+# using one of the rrd files to get the update time
+rrd_filename="${rrd_base_dir}/homie/pi-shed/000006a377c4/json-temp.rrd"
+last_update=$(rrdtool last "${rrd_filename}")
+last_update_fmt=$(date --date="@${last_update}" +"%a, %d %b %Y %H\\:%M\\:%S %z")
+last_update_fmt_mini=$(date --date="@${last_update}" +"%Y-%m-%d %H\\:%M")
+
+# sensor_short_name_XX values will be truncated to 6 characters
+# e.g. "Toy_shed" will be "Toy_sh"
+sg_short_name="outside"
+echo "rendering for outside"
+rrd_filename_01="${rrd_base_dir}/homie/pi-shed/000006a377c4/json-temp.rrd"
+sensor_ds_name_01="shed_temp"
+sensor_description_01="        Shed temperature"
+sensor_short_name_01="Shed"
+rrd_filename_02="${rrd_base_dir}/homie/pi-shed/0008009dbc40/json-temp.rrd"
+sensor_ds_name_02="shed_roof_temp"
+sensor_description_02="   Shed roof temperature"
+sensor_short_name_02="ShedRf"
+rrd_filename_03="${rrd_base_dir}/homie/pi-shed/0008009dab7f/json-temp.rrd"
+sensor_ds_name_03="shed_tools_temp"
+sensor_description_03="  Shed tools temperature"
+sensor_short_name_03="ShdTls"
+rrd_filename_04="${rrd_base_dir}/homie/esp8266-01/temp-and-humidity/json-temp-temp.rrd"
+sensor_ds_name_04="comfypod_temp"
+sensor_description_04="    Comfypod temperature"
+sensor_short_name_04="Cmfy"
+
+rrdtool graph "${IMAGE_OUTPUT_DIR}/${sg_short_name}.png" \
+	--imgformat PNG --width 400 \
+	--end now --start end-1d \
+	--watermark 'proof of concept only' \
+	--rigid \
+	--alt-autoscale \
+	--alt-y-grid \
+	--vertical-label '°C' \
+	DEF:t1="${rrd_filename_01}":${sensor_ds_name_01}:AVERAGE \
+	DEF:t2="${rrd_filename_02}":${sensor_ds_name_02}:AVERAGE \
+	DEF:t3="${rrd_filename_03}":${sensor_ds_name_03}:AVERAGE \
+	DEF:t4="${rrd_filename_04}":${sensor_ds_name_04}:AVERAGE \
+	VDEF:mint1=t1,MINIMUM \
+	VDEF:maxt1=t1,MAXIMUM \
+	VDEF:mint2=t2,MINIMUM \
+	VDEF:maxt2=t2,MAXIMUM \
+	VDEF:mint3=t3,MINIMUM \
+	VDEF:maxt3=t3,MAXIMUM \
+	VDEF:mint4=t4,MINIMUM \
+	VDEF:maxt4=t4,MAXIMUM \
+	LINE1:t1${LINE_COLOUR_01}:t1 \
+	GPRINT:t1:LAST:"${sensor_description_01}\: %4.1lf" \
+	GPRINT:mint1:"Min\: %4.1lf" \
+	GPRINT:maxt1:"Max\: %4.1lf" \
+	COMMENT:"\n" \
+	LINE1:t2${LINE_COLOUR_02}:t2 \
+	GPRINT:t2:LAST:"${sensor_description_02}\: %4.1lf" \
+	GPRINT:mint2:"Min\: %4.1lf" \
+	GPRINT:maxt2:"Max\: %4.1lf" \
+	COMMENT:"\n" \
+	LINE1:t3${LINE_COLOUR_03}:t3 \
+	GPRINT:t3:LAST:"${sensor_description_03}\: %4.1lf" \
+	GPRINT:mint3:"Min\: %4.1lf" \
+	GPRINT:maxt3:"Max\: %4.1lf" \
+	LINE1:t4${LINE_COLOUR_04}:t4 \
+	GPRINT:t4:LAST:"${sensor_description_04}\: %4.1lf" \
+	GPRINT:mint4:"Min\: %4.1lf" \
+	GPRINT:maxt4:"Max\: %4.1lf" \
+	COMMENT:"\n" \
+	COMMENT:"Last data update\\: ${last_update_fmt}\r" # \
+# > /dev/null 2>&1
+
+rrdtool graph ${IMAGE_OUTPUT_DIR}/thumb-${sg_short_name}.png \
+	--imgformat PNG --width 322 \
+	--end now --start end-1d \
+	--watermark 'proof of concept only' \
+	--rigid \
+	--alt-autoscale \
+	--alt-y-grid \
+	--vertical-label '°C' \
+	DEF:t1="${rrd_filename_01}":${sensor_ds_name_01}:AVERAGE \
+	DEF:t2="${rrd_filename_02}":${sensor_ds_name_02}:AVERAGE \
+	DEF:t3="${rrd_filename_03}":${sensor_ds_name_03}:AVERAGE \
+	DEF:t4="${rrd_filename_04}":${sensor_ds_name_04}:AVERAGE \
+	LINE1:t1${LINE_COLOUR_01}:t1 \
+	GPRINT:t1:LAST:"${sensor_description_01}\: %4.1lf\l" \
+	LINE1:t2${LINE_COLOUR_02}:t2 \
+	GPRINT:t2:LAST:"${sensor_description_02}\: %4.1lf\l" \
+	LINE1:t3${LINE_COLOUR_03}:t3 \
+	GPRINT:t3:LAST:"${sensor_description_03}\: %4.1lf\l" \
+	LINE1:t4${LINE_COLOUR_04}:t4 \
+	GPRINT:t4:LAST:"${sensor_description_04}\: %4.1lf\l" \
+	COMMENT:"Last data update\\: ${last_update_fmt}\r" #\
+#	> /dev/null 2>&1
+
+rrdtool graph ${IMAGE_OUTPUT_DIR}/thumb-mini-${sg_short_name}.png \
+	--imgformat PNG --width 180 \
+	--full-size-mode --height 95 \
+	--font LEGEND:6 \
+	--end now --start end-1d \
+	--watermark 'proof of concept only' \
+	--rigid \
+	--alt-autoscale \
+	--alt-y-grid \
+	--vertical-label '°C [POC]' \
+	DEF:t1="${rrd_filename_01}":${sensor_ds_name_01}:AVERAGE \
+	DEF:t2="${rrd_filename_02}":${sensor_ds_name_02}:AVERAGE \
+	DEF:t3="${rrd_filename_03}":${sensor_ds_name_03}:AVERAGE \
+	DEF:t4="${rrd_filename_04}":${sensor_ds_name_04}:AVERAGE \
+	LINE1:t1${LINE_COLOUR_01}:${sensor_short_name_01:0:6} \
+	LINE1:t2${LINE_COLOUR_02}:${sensor_short_name_02:0:6} \
+	LINE1:t3${LINE_COLOUR_03}:${sensor_short_name_03:0:6} \
+	LINE1:t4${LINE_COLOUR_04}:${sensor_short_name_04:0:6} #\
+#	> /dev/null 2>&1
+
+
+## INSIDE
+
+# using one of the rrd files to get the update time
+rrd_filename="${rrd_base_dir}/homie/tsl/laundry/json-temp.rrd"
+last_update=$(rrdtool last "${rrd_filename}")
+last_update_fmt=$(date --date="@${last_update}" +"%a, %d %b %Y %H\\:%M\\:%S %z")
+last_update_fmt_mini=$(date --date="@${last_update}" +"%Y-%m-%d %H\\:%M")
+
+# retired
+#rrd_filename_01="${rrd_base_dir}/homie/tsl/kitchen/json-temp.rrd"
+#sensor_ds_name_01="kitchen_temp"
+#sensor_description_01="           Kitchen temperature"
+#sensor_short_name_01="Kitchn"
+
+sg_short_name="inside"
+echo "rendering for inside"
+# excluded laundry as it squashes the Y-axis too much
+#rrd_filename_01="${rrd_base_dir}/homie/tsl/laundry/json-temp.rrd"
+#sensor_ds_name_01="laundry_temp"
+#sensor_description_01="Laundry networking temperature"
+#sensor_short_name_01="Lundry"
+rrd_filename_01="${rrd_base_dir}/zigbee2mqtt/kitchen-temperature.rrd"
+sensor_ds_name_01="kitchen_temperature"
+sensor_description_01="           Kitchen temperature"
+sensor_short_name_01="Kitchn"
+rrd_filename_02="${rrd_base_dir}/homie/denkovi/ffb917c01705/json-temp.rrd"
+sensor_ds_name_02="loungeroom_temp"
+sensor_description_02="        Loungeroom temperature"
+sensor_short_name_02="Lnge"
+rrd_filename_03="${rrd_base_dir}/zigbee2mqtt/bathroom-temperature.rrd"
+sensor_ds_name_03="bathroom_temperatur"
+sensor_description_03="          Bathroom temperature"
+sensor_short_name_03="Bathrm"
+rrd_filename_04="${rrd_base_dir}/zigbee2mqtt/Front entrance-temperature.rrd"
+sensor_ds_name_04="front_entrance_temp"
+sensor_description_04="    Front entrance temperature"
+sensor_short_name_04="FrntEnt"
+rrd_filename_05="${rrd_base_dir}/zigbee2mqtt/attic-temperature.rrd"
+sensor_ds_name_05="attic_temperature"
+sensor_description_05="             Attic temperature"
+sensor_short_name_05="Attic"
+
+rrdtool graph "${IMAGE_OUTPUT_DIR}/${sg_short_name}.png" \
+	--imgformat PNG --width 400 \
+	--end now --start end-1d \
+	--watermark 'proof of concept only' \
+	--rigid \
+	--alt-autoscale \
+	--alt-y-grid \
+	--vertical-label '°C' \
+	DEF:t1="${rrd_filename_01}":${sensor_ds_name_01}:AVERAGE \
+	DEF:t2="${rrd_filename_02}":${sensor_ds_name_02}:AVERAGE \
+	DEF:t3="${rrd_filename_03}":${sensor_ds_name_03}:AVERAGE \
+	DEF:t4="${rrd_filename_04}":${sensor_ds_name_04}:AVERAGE \
+	DEF:t6="${rrd_filename_05}":${sensor_ds_name_05}:AVERAGE \
+	VDEF:mint1=t1,MINIMUM \
+	VDEF:maxt1=t1,MAXIMUM \
+	VDEF:mint2=t2,MINIMUM \
+	VDEF:maxt2=t2,MAXIMUM \
+	VDEF:mint3=t3,MINIMUM \
+	VDEF:maxt3=t3,MAXIMUM \
+	VDEF:mint4=t4,MINIMUM \
+	VDEF:maxt4=t4,MAXIMUM \
+	VDEF:mint5=t5,MINIMUM \
+	VDEF:maxt5=t5,MAXIMUM \
+	LINE1:t1${LINE_COLOUR_01}:t1 \
+	GPRINT:t1:LAST:"${sensor_description_01}\: %4.1lf" \
+	GPRINT:mint1:"Min\: %4.1lf" \
+	GPRINT:maxt1:"Max\: %4.1lf" \
+	COMMENT:"\n" \
+	LINE1:t2${LINE_COLOUR_02}:t2 \
+	GPRINT:t2:LAST:"${sensor_description_02}\: %4.1lf" \
+	GPRINT:mint2:"Min\: %4.1lf" \
+	GPRINT:maxt2:"Max\: %4.1lf" \
+	COMMENT:"\n" \
+	LINE1:t3${LINE_COLOUR_03}:t3 \
+	GPRINT:t3:LAST:"${sensor_description_03}\: %4.1lf" \
+	GPRINT:mint3:"Min\: %4.1lf" \
+	GPRINT:maxt3:"Max\: %4.1lf" \
+	COMMENT:"\n" \
+	LINE1:t4${LINE_COLOUR_04}:t4 \
+	GPRINT:t4:LAST:"${sensor_description_04}\: %4.1lf" \
+	GPRINT:mint4:"Min\: %4.1lf" \
+	GPRINT:maxt4:"Max\: %4.1lf" \
+	COMMENT:"\n" \
+	LINE1:t5${LINE_COLOUR_07}:t5 \
+	GPRINT:t5:LAST:"${sensor_description_07}\: %4.1lf" \
+	GPRINT:mint5:"Min\: %4.1lf" \
+	GPRINT:maxt5:"Max\: %4.1lf" \
+	COMMENT:"\n" \
+	COMMENT:"Last data update\\: ${last_update_fmt}\r" # \
+# > /dev/null 2>&1
+
+rrdtool graph ${IMAGE_OUTPUT_DIR}/thumb-${sg_short_name}.png \
+	--imgformat PNG --width 322 \
+	--end now --start end-1d \
+	--watermark 'proof of concept only' \
+	--rigid \
+	--alt-autoscale \
+	--alt-y-grid \
+	--vertical-label '°C' \
+	DEF:t1="${rrd_filename_01}":${sensor_ds_name_01}:AVERAGE \
+	DEF:t2="${rrd_filename_02}":${sensor_ds_name_02}:AVERAGE \
+	DEF:t3="${rrd_filename_03}":${sensor_ds_name_03}:AVERAGE \
+	DEF:t4="${rrd_filename_04}":${sensor_ds_name_04}:AVERAGE \
+	DEF:t5="${rrd_filename_05}":${sensor_ds_name_05}:AVERAGE \
+	LINE1:t1${LINE_COLOUR_01}:t1 \
+	GPRINT:t1:LAST:"${sensor_description_01}\: %4.1lf\l" \
+	LINE1:t2${LINE_COLOUR_02}:t2 \
+	GPRINT:t2:LAST:"${sensor_description_02}\: %4.1lf\l" \
+	LINE1:t3${LINE_COLOUR_03}:t3 \
+	GPRINT:t3:LAST:"${sensor_description_03}\: %4.1lf\l" \
+	LINE1:t4${LINE_COLOUR_04}:t4 \
+	GPRINT:t4:LAST:"${sensor_description_04}\: %4.1lf\l" \
+	LINE1:t5${LINE_COLOUR_05}:t5 \
+	GPRINT:t5:LAST:"${sensor_description_05}\: %4.1lf\l" \
+	COMMENT:"Last data update\\: ${last_update_fmt}\r" #\
+#	> /dev/null 2>&1
+
+rrdtool graph ${IMAGE_OUTPUT_DIR}/thumb-mini-${sg_short_name}.png \
+	--imgformat PNG --width 180 \
+	--full-size-mode --height 95 \
+	--font LEGEND:6 \
+	--end now --start end-1d \
+	--watermark 'proof of concept only' \
+	--rigid \
+	--alt-autoscale \
+	--alt-y-grid \
+	--vertical-label '°C [POC]' \
+	DEF:t1="${rrd_filename_01}":${sensor_ds_name_01}:AVERAGE \
+	DEF:t2="${rrd_filename_02}":${sensor_ds_name_02}:AVERAGE \
+	DEF:t3="${rrd_filename_03}":${sensor_ds_name_03}:AVERAGE \
+	DEF:t4="${rrd_filename_04}":${sensor_ds_name_04}:AVERAGE \
+	DEF:t5="${rrd_filename_05}":${sensor_ds_name_05}:AVERAGE \
+	LINE1:t1${LINE_COLOUR_01}:${sensor_short_name_01:0:6} \
+	LINE1:t2${LINE_COLOUR_02}:${sensor_short_name_02:0:6} \
+	LINE1:t3${LINE_COLOUR_03}:${sensor_short_name_03:0:6} \
+	LINE1:t4${LINE_COLOUR_04}:${sensor_short_name_04:0:6} \
+	LINE1:t5${LINE_COLOUR_05}:${sensor_short_name_05:0:6} #\
+#	> /dev/null 2>&1
+
+
+# At this point we will have a stack of PNG images files in the ${IMAGE_OUTPUT_DIR} location.
+# You can copy them to a web server location, or an S3 bucket or anything.
+
+# Examples
+# echo "copying from \"${IMAGE_OUTPUT_DIR}\" to /var/www/mqtt-graphs/"
+# cp -a ${IMAGE_OUTPUT_DIR}/*.png /var/www/mqtt-graphs/
+# echo "copying from \"${IMAGE_OUTPUT_DIR}\" to S3 bucket \"rrd-graphs\""
+# aws --profile=rrd-graphs s3 cp --quiet ${IMAGE_OUTPUT_DIR} s3://rrd-graphs/ --recursive --exclude "@eaDir/*"
+
+# END OF FILE
