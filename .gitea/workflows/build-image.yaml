@@ -40,11 +40,27 @@
             uses: docker/build-push-action@v5
             with:
               context: .
-              file: ./Dockerfile
+              file: ./docker/Dockerfile
               push: true
               tags: |
                 git.figntigger.io/chrismc/${{ github.event.repository.name }}:${{ steps.get_tag.outputs.LAST_ANNOTATED_TAG }}
                 git.figntigger.io/chrismc/${{ github.event.repository.name }}:latest
+              platforms: linux/amd64
+              ssh: default
+              # Optionally, add build arguments or target stages
+              # build-args: |
+              #   MY_ARG=value
+              # target: production
+
+          - name: Build and push Docker image - mqtt2rrd-graph-renderer-scheduler service
+            uses: docker/build-push-action@v5
+            with:
+              context: .
+              file: ./graphing-rrd-data/docker/Dockerfile
+              push: true
+              tags: |
+                git.figntigger.io/chrismc/mqtt2rrd-graph-renderer-scheduler:${{ steps.get_tag.outputs.LAST_ANNOTATED_TAG }}
+                git.figntigger.io/chrismc/mqtt2rrd-graph-renderer-scheduler:latest
               platforms: linux/amd64
               ssh: default
               # Optionally, add build arguments or target stages
