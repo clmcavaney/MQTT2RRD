@@ -33,7 +33,7 @@
               echo "LAST_ANNOTATED_TAG=$TAG" >> $GITHUB_OUTPUT
               echo "Last tag $TAG"
 
-          - name: convert repository to lower case
+          - name: Convert repository name to lower case
             id: lower_repo_name
             run: |
               REPO_NAME_UPPER=${{ github.event.repository.name }}
