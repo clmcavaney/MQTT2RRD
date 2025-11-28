@@ -2,8 +2,9 @@
 
     on:
       push:
-        branches:
-          - master
+#        branches:
+#          - master
+# only need this to fire when a new tag is included in the push, not just any push
         tags:
           - 'v[0-9]+.[0-9]+'
 
