@@ -38,8 +38,8 @@
             run: |
               REPO_NAME_UPPER=${{ github.event.repository.name }}
               REPO_NAME_LOWER=${REPO_NAME_UPPER,,}
-              echo "repository_name_lower=${REPO_NAME_LOWER" >> $GITHUB_OUTPUT
-              echo "Repository: $REPO_NAME_LOWER"
+              echo "repository_name_lower=${REPO_NAME_LOWER}" >> $GITHUB_OUTPUT
+              echo "Repository: ${REPO_NAME_LOWER}"
 
           - name: Setup SSH agent
             uses: webfactory/ssh-agent@v0.9.0
