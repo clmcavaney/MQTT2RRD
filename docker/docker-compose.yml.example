@@ -19,6 +19,25 @@ services:
         volume:
           nocopy: true
 
+  mqtt2rrd-graph-renderer-scheduler:
+    container_name: mqtt2rrd-grapher
+    # this will be name image repository name when building - adjust accordingly
+    image: <FQDN/user/package name> or <user/package name>
+    restart: unless-stopped
+    volumes:
+      - type: volume
+        source: mqtt2rrd-data
+        target: /mnt/mqtt2rrd-rrd-data
+        volume:
+          nocopy: true
+	  # requires S3 bucket config and credentials
+      - ./aws-config.ini:/home/worker/.aws/config
+      - ./aws-credentials.ini:/home/worker/.aws/credentials
+    environment:
+      - AWS_PROFILE=rrd-graphs
+      - S3_BUCKET=rrd-graphs
+
+
 volumes:
   mqtt2rrd-data:
     driver: "local"
