@@ -29,7 +29,7 @@ RUN pip install --upgrade pip \
 
 COPY --from=0 /root/go/bin/supercronic /usr/local/bin/supercronic
 COPY --chown=worker:worker crontab .
-COPY --chown=worker:worker --exclude=docker*/ graphing-rrd-data ./graphing-rrd-data
+COPY --chown=worker:worker --exclude=docker/ graphing-rrd-data ./graphing-rrd-data
 
 USER worker
 
